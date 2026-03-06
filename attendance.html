@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>勤怠管理 | TS Consulting</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3347;
+    --accent: #4f8ef7;
+    --accent2: #38d9a9;
+    --danger: #ff6b6b;
+    --warning: #ffd43b;
+    --text: #e8eaf0;
+    --text-muted: #7a82a0;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .header-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ===== MAIN ===== */
+  .main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+  }
+
+  /* ===== VIEW TABS ===== */
+  .view-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .view-tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .view-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+
+  /* ===== CLOCK ===== */
+  .clock-display {
+    text-align: center;
+    padding: 12px 0 20px;
+  }
+  .clock-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 52px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .clock-date-full {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  /* ===== NAME SELECT ===== */
+  .name-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .name-btn {
+    padding: 14px 8px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+    position: relative;
+  }
+  .name-btn:active { transform: scale(0.96); }
+  .name-btn.selected {
+    border-color: var(--accent);
+    background: rgba(79,142,247,0.12);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .name-btn .status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--border);
+    vertical-align: middle;
+    margin-top: -2px;
+  }
+  .name-btn.clocked-in .status-dot { background: var(--accent2); }
+  .name-btn.clocked-out .status-dot { background: var(--danger); }
+
+  /* ===== ACTION BUTTONS ===== */
+  .action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .action-btn {
+    padding: 16px;
+    border-radius: 12px;
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.02em;
+  }
+  .action-btn:active { transform: scale(0.97); }
+  .btn-in {
+    background: var(--accent2);
+    color: #0f1117;
+  }
+  .btn-out {
+    background: var(--danger);
+    color: #fff;
+  }
+  .action-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ===== MEMO ===== */
+  .memo-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    padding: 12px 14px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-top: 4px;
+  }
+  .memo-input:focus { border-color: var(--accent); }
+  .memo-input::placeholder { color: var(--text-muted); }
+
+  /* ===== STATUS DISPLAY ===== */
+  .status-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border-radius: 10px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    min-height: 44px;
+  }
+  .status-info .status-icon { font-size: 18px; }
+  .status-info.in { border-left: 3px solid var(--accent2); }
+  .status-info.out { border-left: 3px solid var(--danger); }
+  .status-info.none { border-left: 3px solid var(--border); }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 12px 24px;
+    font-size: 14px;
+    color: var(--text);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    opacity: 0;
+    z-index: 999;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  .toast.success { border-color: var(--accent2); color: var(--accent2); }
+  .toast.error { border-color: var(--danger); color: var(--danger); }
+  .toast.loading { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== HISTORY VIEW ===== */
+  .history-view { display: none; }
+  .history-view.active { display: block; }
+  .stamp-view { display: block; }
+  .stamp-view.hidden { display: none; }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .badge-in { background: rgba(56,217,169,0.15); }
+  .badge-out { background: rgba(255,107,107,0.15); }
+  .history-name { font-size: 14px; font-weight: 500; }
+  .history-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .history-time {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: right;
+  }
+  .history-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 32px 0;
+  }
+
+  /* ===== ADMIN SECTION ===== */
+  .admin-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 10px 0;
+    margin-top: 8px;
+  }
+  .admin-toggle:hover { color: var(--accent); }
+  .admin-panel { display: none; margin-top: 12px; }
+  .admin-panel.open { display: block; }
+  .admin-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 11px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 8px;
+  }
+  .admin-input:focus { border-color: var(--accent); }
+  .admin-input::placeholder { color: var(--text-muted); }
+  .admin-save {
+    width: 100%;
+    padding: 11px;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .admin-save:hover { background: rgba(79,142,247,0.1); }
+  .hint-text {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+  .hint-text a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  /* ===== LOADING SPINNER ===== */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== SEPARATOR ===== */
+  .section-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">⏱ 勤怠管理</div>
+  <div class="header-date" id="headerDate">--</div>
+</div>
+
+<div class="main">
+
+  <!-- TABS -->
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchView('stamp')">打刻</button>
+    <button class="view-tab" onclick="switchView('history')">今日の履歴</button>
+  </div>
+
+  <!-- ===== STAMP VIEW ===== -->
+  <div class="stamp-view" id="stampView">
+
+    <!-- Clock -->
+    <div class="card">
+      <div class="clock-display">
+        <div class="clock-time" id="clockTime">--:--:--</div>
+        <div class="clock-date-full" id="clockDateFull">--</div>
+      </div>
+    </div>
+
+    <!-- Name Select -->
+    <div class="card">
+      <div class="card-title">① 名前を選択</div>
+      <div class="name-grid" id="nameGrid">
+        <!-- generated by JS -->
+      </div>
+    </div>
+
+    <!-- Memo + Action -->
+    <div class="card">
+      <div class="card-title">② メモ（任意）</div>
+      <textarea class="memo-input" id="memoInput" rows="2" placeholder="例：遅刻理由、早退理由、備考など"></textarea>
+
+      <!-- Current status -->
+      <div class="status-info none" id="statusInfo">
+        <span class="status-icon">👤</span>
+        <span id="statusText">名前を選択してください</span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="action-row">
+        <button class="action-btn btn-in" id="btnIn" disabled onclick="stamp('in')">出勤</button>
+        <button class="action-btn btn-out" id="btnOut" disabled onclick="stamp('out')">退勤</button>
+      </div>
+    </div>
+
+    <!-- Admin Settings -->
+    <div class="card">
+      <div class="admin-toggle" onclick="toggleAdmin()">
+        <span>⚙️</span> 管理者設定（Google Sheets連携）
+      </div>
+      <div class="admin-panel" id="adminPanel">
+        <div class="section-label">Google Apps Script URL</div>
+        <input class="admin-input" type="url" id="gasUrl" placeholder="https://script.google.com/macros/s/..." />
+        <button class="admin-save" onclick="saveSettings()">保存</button>
+        <div class="hint-text">
+          下記の手順でGoogle Sheetsに自動送信できます：<br>
+          1. Google スプレッドシートを新規作成<br>
+          2. 拡張機能 → Apps Script を開く<br>
+          3. 下の「スクリプトをコピー」ボタンでコードを貼り付け<br>
+          4. デプロイ → 新しいデプロイ → ウェブアプリとして実行<br>
+          5. 発行されたURLをここに貼り付けて保存
+          <br><br>
+          <a href="#" onclick="showScript(); return false;">📋 Google Apps Scriptをコピー</a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /stamp-view -->
+
+  <!-- ===== HISTORY VIEW ===== -->
+  <div class="history-view" id="historyView">
+    <div class="card">
+      <div class="card-title">今日の打刻履歴</div>
+      <div id="historyList">
+        <div class="history-empty">まだ打刻記録がありません</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- GAS Script Modal -->
+<div id="scriptModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:200; padding:20px; overflow-y:auto;">
+  <div style="max-width:480px; margin:0 auto; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <div style="font-weight:500; font-size:15px;">Google Apps Script コード</div>
+      <button onclick="closeScript()" style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">以下をコピーしてApps Scriptに貼り付けてください</div>
+    <pre id="scriptCode" style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:14px; font-size:11px; font-family:'DM Mono',monospace; color:var(--accent2); overflow-x:auto; line-height:1.6; white-space:pre-wrap;"></pre>
+    <button onclick="copyScript()" style="width:100%; margin-top:12px; padding:12px; border-radius:10px; border:1px solid var(--accent); background:rgba(79,142,247,0.1); color:var(--accent); font-family:'Noto Sans JP',sans-serif; font-size:14px; cursor:pointer;">
+      📋 コードをコピー
+    </button>
+  </div>
+</div>
+
+<script>
+// =============================================
+// CONFIG - 従業員リスト（ここを編集）
+// =============================================
+const EMPLOYEES = [
+  '田中 太郎',
+  '鈴木 花子',
+  '佐藤 次郎',
+  '山田 三郎',
+  '高橋 四郎',
+  '中村 五郎',
+  '伊藤 六子',
+  '渡辺 七子',
+];
+
+// =============================================
+// STATE
+// =============================================
+let selectedName = null;
+let todayRecords = JSON.parse(localStorage.getItem('attendanceToday') || '[]');
+let todayKey = '';
+let gasUrl = localStorage.getItem('gasUrl') || '';
+
+// Clean old records (different day)
+function initToday() {
+  const now = new Date();
+  const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+  if (localStorage.getItem('attendanceDayKey') !== key) {
+    todayRecords = [];
+    localStorage.setItem('attendanceDayKey', key);
+    localStorage.setItem('attendanceToday', '[]');
+  }
+  todayKey = key;
+}
+
+// =============================================
+// CLOCK
+// =============================================
+function updateClock() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clockTime').textContent = `${hh}:${mm}:${ss}`;
+
+  const days = ['日','月','火','水','木','金','土'];
+  const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日（${days[now.getDay()]}）`;
+  document.getElementById('clockDateFull').textContent = dateStr;
+  document.getElementById('headerDate').textContent = `${now.getMonth()+1}/${now.getDate()}`;
+}
+
+// =============================================
+// NAME BUTTONS
+// =============================================
+function buildNameGrid() {
+  const grid = document.getElementById('nameGrid');
+  grid.innerHTML = '';
+  EMPLOYEES.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'name-btn';
+    btn.dataset.name = name;
+
+    const lastRecord = getLastRecord(name);
+    if (lastRecord) {
+      btn.classList.add(lastRecord.type === 'in' ? 'clocked-in' : 'clocked-out');
+    }
+
+    const dot = document.createElement('span');
+    dot.className = 'status-dot';
+    btn.appendChild(dot);
+    btn.appendChild(document.createTextNode(name));
+    btn.addEventListener('click', () => selectName(name));
+    grid.appendChild(btn);
+  });
+}
+
+function selectName(name) {
+  selectedName = name;
+  document.querySelectorAll('.name-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.querySelector(`.name-btn[data-name="${name}"]`);
+  if (btn) btn.classList.add('selected');
+  updateStatusDisplay();
+}
+
+function getLastRecord(name) {
+  const records = todayRecords.filter(r => r.name === name);
+  return records.length ? records[records.length - 1] : null;
+}
+
+function updateStatusDisplay() {
+  const info = document.getElementById('statusInfo');
+  const text = document.getElementById('statusText');
+  const btnIn = document.getElementById('btnIn');
+  const btnOut = document.getElementById('btnOut');
+
+  if (!selectedName) {
+    info.className = 'status-info none';
+    info.querySelector('.status-icon').textContent = '👤';
+    text.textContent = '名前を選択してください';
+    btnIn.disabled = true;
+    btnOut.disabled = true;
+    return;
+  }
+
+  const last = getLastRecord(selectedName);
+
+  if (!last || last.type === 'out') {
+    info.className = 'status-info none';
+    info.querySelector('.status-icon').textContent = '🏠';
+    text.textContent = `${selectedName}：未出勤`;
+    btnIn.disabled = false;
+    btnOut.disabled = true;
+  } else {
+    const t = last.time;
+    info.className = 'status-info in';
+    info.querySelector('.status-icon').textContent = '✅';
+    text.textContent = `${selectedName}：出勤中（${t} 〜）`;
+    btnIn.disabled = true;
+    btnOut.disabled = false;
+  }
+}
+
+// =============================================
+// STAMP
+// =============================================
+async function stamp(type) {
+  if (!selectedName) return;
+
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  const timeStr = `${hh}:${mm}:${ss}`;
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  const memo = document.getElementById('memoInput').value.trim();
+
+  const record = {
+    date: dateStr,
+    name: selectedName,
+    type: type,
+    time: timeStr,
+    memo: memo,
+    timestamp: now.toISOString(),
+  };
+
+  // Save locally
+  todayRecords.push(record);
+  localStorage.setItem('attendanceToday', JSON.stringify(todayRecords));
+
+  // Update UI
+  document.getElementById('memoInput').value = '';
+  buildNameGrid();
+  selectName(selectedName);
+  renderHistory();
+
+  const label = type === 'in' ? '出勤' : '退勤';
+
+  // Send to GAS
+  if (gasUrl) {
+    showToast(`<span class="spinner"></span> 送信中...`, 'loading', 99999);
+    try {
+      await sendToGAS(record);
+      showToast(`✅ ${selectedName} の${label}を記録しました`, 'success');
+    } catch (e) {
+      showToast(`⚠ ローカルに保存済み（オフライン）`, 'error');
+    }
+  } else {
+    showToast(`✅ ${selectedName} の${label}を記録しました（ローカル保存）`, 'success');
+  }
+}
+
+async function sendToGAS(record) {
+  const response = await fetch(gasUrl, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(record),
+  });
+  return response;
+}
+
+// =============================================
+// HISTORY
+// =============================================
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (!todayRecords.length) {
+    list.innerHTML = '<div class="history-empty">まだ打刻記録がありません</div>';
+    return;
+  }
+  const sorted = [...todayRecords].reverse();
+  list.innerHTML = sorted.map(r => `
+    <div class="history-item">
+      <div class="history-badge ${r.type === 'in' ? 'badge-in' : 'badge-out'}">
+        ${r.type === 'in' ? '🟢' : '🔴'}
+      </div>
+      <div>
+        <div class="history-name">${r.name}</div>
+        <div class="history-meta">${r.type === 'in' ? '出勤' : '退勤'}${r.memo ? ' · ' + r.memo : ''}</div>
+      </div>
+      <div class="history-time">${r.time}</div>
+    </div>
+  `).join('');
+}
+
+// =============================================
+// VIEW TABS
+// =============================================
+function switchView(view) {
+  document.querySelectorAll('.view-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && view==='stamp') || (i===1 && view==='history'));
+  });
+  document.getElementById('stampView').classList.toggle('hidden', view !== 'stamp');
+  document.getElementById('historyView').style.display = view === 'history' ? 'block' : 'none';
+  if (view === 'history') renderHistory();
+}
+
+// =============================================
+// ADMIN
+// =============================================
+function toggleAdmin() {
+  document.getElementById('adminPanel').classList.toggle('open');
+  document.getElementById('gasUrl').value = gasUrl;
+}
+function saveSettings() {
+  gasUrl = document.getElementById('gasUrl').value.trim();
+  localStorage.setItem('gasUrl', gasUrl);
+  showToast('✅ URLを保存しました', 'success');
+  document.getElementById('adminPanel').classList.remove('open');
+}
+
+// =============================================
+// TOAST
+// =============================================
+let toastTimer;
+function showToast(msg, type = '', duration = 3000) {
+  const t = document.getElementById('toast');
+  t.innerHTML = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  if (duration < 99999) {
+    toastTimer = setTimeout(() => { t.classList.remove('show'); }, duration);
+  }
+}
+
+// =============================================
+// GAS SCRIPT
+// =============================================
+const GAS_CODE = `// Google Apps Script - 勤怠管理自動記録
+// スプレッドシートのApps Scriptに貼り付けてください
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet()
+      .getSheetByName('勤怠記録') || createSheet();
+    
+    sheet.appendRow([
+      data.date,
+      data.name,
+      data.type === 'in' ? '出勤' : '退勤',
+      data.time,
+      data.memo || '',
+      new Date()
+    ]);
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({status: 'ok'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({status: 'error', message: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function createSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.insertSheet('勤怠記録');
+  sheet.appendRow(['日付', '氏名', '種別', '時刻', 'メモ', '記録日時']);
+  sheet.getRange(1,1,1,6).setFontWeight('bold')
+    .setBackground('#4f8ef7').setFontColor('#ffffff');
+  sheet.setFrozenRows(1);
+  return sheet;
+}`;
+
+function showScript() {
+  document.getElementById('scriptCode').textContent = GAS_CODE;
+  document.getElementById('scriptModal').style.display = 'block';
+}
+function closeScript() {
+  document.getElementById('scriptModal').style.display = 'none';
+}
+function copyScript() {
+  navigator.clipboard.writeText(GAS_CODE).then(() => {
+    showToast('📋 コードをコピーしました', 'success');
+    closeScript();
+  });
+}
+
+// =============================================
+// INIT
+// =============================================
+initToday();
+updateClock();
+setInterval(updateClock, 1000);
+buildNameGrid();
+updateStatusDisplay();
+</script>
+</body>
+</html>
